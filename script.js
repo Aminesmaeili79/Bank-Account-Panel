@@ -33,7 +33,7 @@ const account4 = {
     pin: 4444,
 };
 
-const accounts = [account1, account2, account3, account4];
+let accounts = [account1, account2, account3, account4];
 
 // Elements
 const labelWelcome = document.querySelector('.welcome');
@@ -46,12 +46,6 @@ const labelTimer = document.querySelector('.timer');
 
 const containerApp = document.querySelector('.app');
 const containerMovements = document.querySelector('.movements');
-
-const btnLogin = document.querySelector('.login__btn');
-const btnTransfer = document.querySelector('.form__btn--transfer');
-const btnLoan = document.querySelector('.form__btn--loan');
-const btnClose = document.querySelector('.form__btn--close');
-const btnSort = document.querySelector('.btn--sort');
 
 const inputLoginUsername = document.querySelector('.login__input--user');
 const inputLoginPin = document.querySelector('.login__input--pin');
@@ -77,117 +71,140 @@ const currencies = new Map([
 const movements = [200, 450, -400, 3000, -650, -130, 70, 1300];
 const userNames = accounts.map(account => {
     return account.owner.split(" ")[0][0].toLowerCase() + account.owner.split(" ")[1][0].toLowerCase();
-})
-console.log(userNames)
+});
+
+var currentUser;
+var currentUserName;
+
+const logOut = () => {
+    currentUserName = "";
+    currentUser = null;
+    containerApp.classList.add('hidden')
+    labelWelcome.innerText = "Log in to get started"
+    preemptInputs();
+}
 
 const handleCredentials = (e) => {
     e.preventDefault()
     const userName = inputLoginUsername.value;
-    console.log(userName)
     if (userNames.includes(userName)) {
         if (String(accounts[userNames.indexOf(userName)].pin) === inputLoginPin.value) {
             containerApp.classList.remove('hidden');
             return accounts[userNames.indexOf(userName)];
         }
     }
-}
+};
 
 const convertToCurrency = (currencyLabel, user) => {
     return Intl.NumberFormat("en-US", {
         style: "currency",
         currency: currencyLabel
-    }).format(user.movements.reduce((total, movement) => total += movement, 0,))
+    }).format(user.movements.reduce((total, movement) => total += movement, 0,));
 }
 
 const preemptInputs = () => {
     inputLoginUsername.value = "";
     inputLoginPin.value = "";
+    inputTransferAmount.value = "";
+    inputTransferTo.value = "";
+    inputLoanAmount.value = "";
+    inputClosePin.value = "";
+    inputCloseUsername.value = "";
 }
 
-const updateTimer = () => {
-    var seconds = 59;
-    var minutes = 4;
-
-    let start = Date.now()
-
-    setInterval(() => {
-        if (seconds === 0) {
-            start = Date.now();
-            minutes--;
-        }
-        seconds = 59 - Math.floor((Date.now() - start) / 1000);
-        labelTimer.innerText = `${minutes}:${seconds}`
-    }, 1000)
+const requestLoan = () => {
+    currentUser.movements.push(Number(inputLoanAmount.value));
+    fillLabels(currentUser);
+    displayMovements(currentUser);
 }
 
 const fillLabels = (user) => {
+    labelBalance.innerText = convertToCurrency("USD", user);
+
     labelSumIn.innerText = Intl.NumberFormat("en-US", {
         style: "currency",
         currency: "USD"
     }).format(user.movements.filter((movement) => {
         return movement > 0;
-    }).reduce((totalIn, amount) => totalIn += amount, 0))
+    }).reduce((totalIn, amount) => totalIn += amount, 0));
 
     labelSumOut.innerText = Intl.NumberFormat("en-US", {
         style: "currency",
         currency: "USD"
     }).format(user.movements.filter((movement) => {
         return movement < 0;
-    }).reduce((totalOut, amount) => totalOut += amount, 0))
+    }).reduce((totalOut, amount) => totalOut += amount, 0));
 
     labelSumInterest.innerText = Intl.NumberFormat("en-US", {
         style: "currency",
         currency: "USD"
     }).format(Math.abs(user.movements.filter((movement) => {
         return movement > 0;
-    }).reduce((totalInterest, amount) => totalInterest += amount * (1 - user.interestRate), 0)))
+    }).reduce((totalInterest, amount) => totalInterest += amount * (1 - user.interestRate), 0)));
 
-    const hour = new Date().getHours()
+    var hour = new Date().getHours();
 
-    let dayGreetings = "";
+    var dayGreetings = "";
 
-    switch (hour) {
-        case hour > 4 && hour < 11:
-            dayGreetings = "morning";
-            break;
+    if (hour >=4 && hour < 11)
+        dayGreetings = "morning";
+    else if (hour < 17)
+        dayGreetings = "afternoon";
+    else if (hour < 21)
+        dayGreetings = "evening";
+    else
+        dayGreetings = "night";
 
-        case hour < 17:
-            dayGreetings = "afternoon";
-            break;
-        case hour < 21:
-            dayGreetings = "evening";
-            break;
-        default:
-            dayGreetings = "night";
-            break;
-    }
+    labelDate.innerText = `${new Date().toLocaleDateString()}, ${new Date().toLocaleTimeString()}`;
 
-    labelDate.innerText = `${new Date().toLocaleDateString()}, ${new Date().toLocaleTimeString()}`
-
-    labelWelcome.innerText = `Good ${dayGreetings}, ${user.owner.split(" ")[0]}.`
-
-    updateTimer()
+    labelWelcome.innerText = `Good ${dayGreetings}, ${user.owner.split(" ")[0]}.`;
 }
 
+let timerInterval;
+
 document.querySelector('.login').addEventListener('submit', (e) => {
-    const user = handleCredentials(e);
-    labelBalance.innerText = convertToCurrency("USD", user);
-    preemptInputs()
-    fillLabels(user)
-    displayMovements(user)
+    currentUser = handleCredentials(e);
+    console.log(currentUser)
+    console.log(accounts)
+
+    labelTimer.innerText = "5:00";
+
+    let seconds = 60;
+    let minutes = 4;
+
+    clearInterval(timerInterval)
+    timerInterval = setInterval(() => {
+        seconds--;
+        labelTimer.innerText = `${minutes}:${seconds < 10 ? '0'+seconds : seconds}`;
+        if (seconds === 0) {
+            seconds = 60;
+            minutes--;
+            if (minutes === 0) logOut();
+        }
+    }, 1000);
+
+    preemptInputs();
+    fillLabels(currentUser);
+    displayMovements(currentUser);
+
+    currentUserName = currentUser.owner.split(" ")[0][0].toLowerCase() + currentUser.owner.split(" ")[1][0].toLowerCase();
 })
 
 const displayMovements = (user) => {
-    user.movements.reverse().forEach((movement) => {
-        const movementRow = document.createElement('div')
-        movementRow.classList.add('movements__row')
-        let movementsType = document.createElement('div')
+    containerMovements.replaceChildren("");
+
+   for (let i = 0; i < user.movements.length; i++){
+        const movement = user.movements[ user.movements.length - i - 1]
+
+        const movementRow = document.createElement('div');
+        movementRow.classList.add('movements__row');
+        let movementsType = document.createElement('div');
         movementsType.classList.add("movements__type", `${movement > 0 ? "movements__type--deposit" : "movements__type--withdrawal"}`);
-        movementsType.innerText = `${user.movements.length - user.movements.indexOf(movement)}  ${movement > 0 ? "deposit" : "withdrawal"}`
-        let movementsDate = document.createElement('div')
+        movementsType.innerText = `${user.movements.length - i}  ${movement > 0 ? "deposit" : "withdrawal"}`;
+        let movementsDate = document.createElement('div');
         movementsDate.classList.add('movements__date');
-        let movementsValue = document.createElement('div')
-        movementsValue.classList.add('movements__value')
+        let movementsValue = document.createElement('div');
+        movementsValue.classList.add('movements__value');
         movementsValue.innerText = Intl.NumberFormat("en-US", {style: "currency", currency: "USD"}).format(movement);
 
         movementRow.appendChild(movementsType);
@@ -195,5 +212,35 @@ const displayMovements = (user) => {
         movementRow.appendChild(movementsValue);
 
         containerMovements.appendChild(movementRow);
-    })
-}
+    }
+};
+
+document.querySelector(".form--transfer").addEventListener("submit", (e) => {
+    e.preventDefault();
+
+    const amount = inputTransferAmount.value;
+    const transferTo = inputTransferTo.value;
+
+    if (userNames.includes(transferTo) && amount <= currentUser.movements.reduce((total, movement) => total += movement, 0,) && amount != 0)
+    {
+        accounts[userNames.indexOf(transferTo)].movements.push(Number(amount));
+        currentUser.movements.push(Number(amount) * -1);
+        fillLabels(currentUser);
+        displayMovements(currentUser);
+    }
+});
+
+document.querySelector(".form--loan").addEventListener("submit", (e) => {
+    e.preventDefault();
+    requestLoan();
+})
+
+document.querySelector(".form--close").addEventListener("submit", (e) => {
+    e.preventDefault();
+    if (inputClosePin.value == currentUser.pin && inputCloseUsername.value == currentUserName){
+           accounts.splice(accounts.indexOf(currentUser), 1);
+           userNames.splice(userNames.indexOf(currentUserName), 1)
+           logOut();
+           console.log(accounts)
+    }
+})

@@ -99,6 +99,7 @@ nav {
 }
 
 .balance {
+    position: relative;
     grid-column: 1 / span 2;
     display: flex;
     align-items: flex-end;
@@ -171,7 +172,8 @@ nav {
 .summary {
     grid-row: 5 / 6;
     display: flex;
-    align-items: baseline;
+    align-items: center;
+    flex-wrap: wrap;
     padding: 0 0.3rem;
     margin-top: 1rem;
 }
@@ -198,6 +200,10 @@ nav {
 }
 
 .btn--sort {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translate(-50%, 200%);
     margin-left: auto;
     border: none;
     background: none;
